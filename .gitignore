@@ -1,0 +1,14 @@
+data/*
+.nextflow/*
+docs/*
+exercises/*
+fastqc*
+hands-on/*
+parsing/*
+results/*
+setup/*
+hello.nf
+script*
+lung/*
+liver/*
+gut/*

@@ -1,4 +1,6 @@
 #!/usr/bin/env nextflow
+// reference https://seqera.io/training/#_get_started_with_nextflow
+
 
 nextflow.enable.dsl=2
 
@@ -6,11 +8,11 @@ nextflow.enable.dsl=2
  * pipeline input parameters
  */
 
-params.baseDir = "/Users/sidd/Research/fun/nextflow"
-params.reads = "$params.baseDir/data/ggal/*_{1,2}.fq"
-params.transcriptome = "$params.baseDir/data/ggal/transcriptome.fa"
-params.outdir = "$params.baseDir/results"
-params.multiqc = "$params.baseDir/multiqc"
+//params.baseDir = "/Users/sidd/Research/fun/nextflow"
+params.reads = "$baseDir/data/ggal/*_{1,2}.fq"
+params.transcriptome = "$baseDir/data/ggal/transcriptome.fa"
+params.outdir = "$baseDir/results"
+params.multiqc = "$baseDir/multiqc"
 
 println "reads: $params.reads"
 
@@ -41,7 +43,7 @@ process index {
 
 process quantification {
     tag "quantifying" 
-    publishDir "/Users/sidd/Research/fun/LearnNF", mode: 'copy'
+    publishDir "$baseDir", mode: 'copy'
     
     input:
     path index
@@ -58,7 +60,7 @@ process quantification {
 
 process fastqc {
     tag "FASTQC on $sample_id"
-    publishDir "/Users/sidd/Research/fun/LearnNF", mode: 'copy'
+    publishDir "$baseDir", mode: 'copy'
 
     input:
     tuple val(sample_id), path(reads)
@@ -73,9 +75,29 @@ process fastqc {
     """  
 }  
 
+process multiqc {
+    publishDir params.outdir, mode:'copy'
+       
+    input:
+    path '*'
+    
+    output:
+    path 'multiqc_report.html'
+     
+    script:
+    """
+    multiqc . 
+    """
+} 
+
 workflow {
     read_pairs_ch = Channel.fromFilePairs(params.reads, checkIfExists: true)
     index(params.transcriptome)
     quantification(index.out, read_pairs_ch)
     fastqc (read_pairs_ch)
+    multiqc(fastqc.out.collect())
+}
+
+workflow.onComplete { 
+	log.info ( workflow.success ? "\nDone! Open the following report in your browser --> $params.outdir/multiqc_report.html\n" : "Oops .. something went wrong" )
 }
